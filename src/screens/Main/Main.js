@@ -5,76 +5,109 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Permissions from 'expo-permissions';
 
 import styles from './Style';
-import globalStyles from '../../constants/GlobalStyle';
 import { BoldText, RegularText, LightText } from '../../components/StyledText';
+
+import globalStyles from '../../constants/GlobalStyle';
 import Colors from '../../constants/Colors';
 
-export default function Main() {
-    const [photo, setPhoto] = useState(null);
+import api from './../../services/Api';
 
-    useEffect(() => console.log(photo), [photo]);
+export default function Main() {
+    const [photo, setPhoto] = useState("");
+
+    // useEffect(() => console.log("image: ", photo), [photo]);
 
     async function getFromGallery() {
-        let resp = await ImagePicker.getCameraRollPermissionsAsync();
-        let result, ok = false;
+        let { granted } = await ImagePicker.getCameraRollPermissionsAsync();
+        let result;
 
-        if (!resp.granted) {
+        if (!granted) {
             resp = await ImagePicker.requestCameraRollPermissionsAsync();
 
             if (!resp.granted) {
                 return alert("Permissão à galeria negada!");
-            } else {
-                ok = true;
-            }
-        } else {
-            ok = true;
+            } 
         }
         
-        if (ok) {
-            result = await ImagePicker.launchImageLibraryAsync({
-                allowsEditing: true,
-                aspect: [4, 5],
-            });
+        result = await ImagePicker.launchImageLibraryAsync({
+            allowsEditing: true,
+            aspect: [4, 5],
+        });
 
-            if (!result.cancelled) {
-                setPhoto({ url: result.uri, type: result.type }); 
-                // console.log(photo);                 
-            } else {
-                alert("Processo cancelado!");
-            }
+        if (!result.cancelled) {
+            await setPhoto({ url: result.uri, type: result.type }); 
+            // console.log(photo);   
+            handleSubmitImage();              
+        } else {
+            alert("Processo cancelado!");
         }
     }
 
     async function getFromCamera() {
-        let resp = await ImagePicker.getCameraPermissionsAsync();
-        let result, ok = false;
+        let { granted } = await ImagePicker.getCameraPermissionsAsync();
+        let result;
 
-        if (!resp.granted) {
+        if (!granted) {
             resp = await ImagePicker.requestCameraPermissionsAsync();
 
             if (!resp.granted) {
                 return alert("Permissão à câmera negada!");
-            } else {
-                ok = true;
             }
-        } else {
-            ok = true;
-        }
+        } 
         
-        if (ok) {
-            result = await ImagePicker.launchCameraAsync({
-                allowsEditing: true,
-                aspect: [4, 5],
-            });
+        result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [4, 5],
+        });
 
-            if (!result.cancelled) {
-                setPhoto({ url: result.uri, type: result.type });
-                // console.log(photo);              
-            } else {
-                alert("Processo cancelado!");
-            }
+        if (!result.cancelled) {
+            await setPhoto({ url: result.uri, type: result.type });
+            // console.log(photo);    
+            handleSubmitImage();          
+        } else {
+            alert("Processo cancelado!");
         }
     }
+
+    async function handleSubmitImage() {
+        console.log("entrou com isso no state: ");
+        console.log(photo);
+
+        if (photo.url === null) {
+            return alert("Sem nenhuma foto para a requisição!");
+        }
+
+        try {
+            const data = new FormData();
+            data.append('image', { 
+                uri: photo.url, 
+                name: 'first-photo.png', 
+                filename :'firstImageName.png', 
+                type: photo.type
+            });
+            data.append('Content-Type', photo.type);    
+            console.log("data:", data);
+    
+            await api.post('/images/', data, { headers: { "Content-type": "multipart/form-data" }})
+                .then((data) => {
+                    console.log("Passou and data from api: ", data.data);
+            
+                    if (data.status === 201) {
+                        alert("Imagem enviada com sucesso!");
+                    } else {
+                        alert("Erro no envio da imagem.");
+                    }
+                })
+                .catch(err => {
+                    console.log("Erro:", err);
+                });
+            
+        } catch(err) {
+            console.log("ERROOOOW:", err);
+            alert("Ocorreu um erro");
+        }        
+    } 
+    
 
   return (
     <>
