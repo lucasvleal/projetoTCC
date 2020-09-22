@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StatusBar, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, StatusBar, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Permissions from 'expo-permissions';
@@ -16,16 +16,35 @@ import api from './../../services/Api';
 
 export default function Main() {
     const [photo, setPhoto] = useState(null);
+
     const [allProducts, setAllProducts] = useState([]);
     const [productSelected, setProductSelected] = useState(null);
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [isLinksModalVisible, setIsLinksModalVisible] = useState(false);
     const [links, setLinks] = useState([]);
 
-    // useEffect(() => console.log("image: ", photo), [photo]);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isLinksModalVisible, setIsLinksModalVisible] = useState(false);
+
+    useEffect(() => {
+        Alert.alert(
+            "Foto tirada com sucesso!",
+            "O que deseja fazer agora?",
+            [
+                { 
+                    text: 'Procurar o(s) objeto(s)',
+                    onPress: () => handleSubmitInitialImage(),
+                    style: 'default',
+                },
+                {
+                    text: "Cancelar",
+                    onPress: () => console.log("Cancelado"),
+                    style: 'cancel,'
+                }
+            ],
+            { cancelable: false }
+        )
+    }, [photo]);
 
     async function getFromGallery() {
-        // setPhoto(null);
         let { granted } = await ImagePicker.getCameraRollPermissionsAsync();
         let result;
 
@@ -43,16 +62,13 @@ export default function Main() {
         });
 
         if (!result.cancelled) {
-            setPhoto({ url: result.uri, type: result.type }); 
-            // console.log(photo);   
-            await handleSubmitInitialImage();              
+            setPhoto(result.uri);
         } else {
             alert("Processo cancelado!");
         }
     }
 
     async function getFromCamera() {
-        // setPhoto(null);
         let { granted } = await ImagePicker.getCameraPermissionsAsync();
         let result;
 
@@ -70,9 +86,7 @@ export default function Main() {
         });
 
         if (!result.cancelled) {
-            setPhoto({ url: result.uri, type: result.type });
-            // console.log(photo);    
-            await handleSubmitInitialImage();      
+            setPhoto(result.uri);            
         } else {
             alert("Processo cancelado!");
         }
@@ -82,7 +96,7 @@ export default function Main() {
         console.log("entrou com isso no state: ");
         console.log(photo);
 
-        if (photo.url === null) {
+        if (photo === null) {
             return alert("Sem nenhuma foto para a requisição!");
         }
 
@@ -92,10 +106,10 @@ export default function Main() {
             console.log(`https://simple-search-api.herokuapp.com/images/${imageName}`);
 
             data.append('image', { 
-                uri: photo.url, 
+                uri: photo, 
                 name: imageName, 
                 filename : `file-${imageName}`, 
-                type: photo.type
+                // type: photo.type
             });
             // data.append('Content-Type', photo.type);    
             // console.log("data:", data);
@@ -115,7 +129,7 @@ export default function Main() {
             console.log("ERROOOOW:", err);
             alert("Ocorreu um erro");
         }        
-    } 
+    }
 
     function handleSelectProduct(name) {
         console.log("selecionou: ", name);
