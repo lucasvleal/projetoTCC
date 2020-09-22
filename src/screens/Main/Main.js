@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Permissions from 'expo-permissions';
 import Modal from 'react-native-modal';
+import Communications from 'react-native-communications';
 
 import styles from './Style';
 import { BoldText, RegularText, LightText } from '../../components/StyledText';
@@ -14,13 +15,17 @@ import Colors from '../../constants/Colors';
 import api from './../../services/Api';
 
 export default function Main() {
-    const [photo, setPhoto] = useState("");
+    const [photo, setPhoto] = useState(null);
+    const [allProducts, setAllProducts] = useState([]);
     const [productSelected, setProductSelected] = useState(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isLinksModalVisible, setIsLinksModalVisible] = useState(false);
+    const [links, setLinks] = useState([]);
 
     // useEffect(() => console.log("image: ", photo), [photo]);
 
     async function getFromGallery() {
+        // setPhoto(null);
         let { granted } = await ImagePicker.getCameraRollPermissionsAsync();
         let result;
 
@@ -38,15 +43,16 @@ export default function Main() {
         });
 
         if (!result.cancelled) {
-            await setPhoto({ url: result.uri, type: result.type }); 
+            setPhoto({ url: result.uri, type: result.type }); 
             // console.log(photo);   
-            handleSubmitImage();              
+            await handleSubmitInitialImage();              
         } else {
             alert("Processo cancelado!");
         }
     }
 
     async function getFromCamera() {
+        // setPhoto(null);
         let { granted } = await ImagePicker.getCameraPermissionsAsync();
         let result;
 
@@ -64,15 +70,15 @@ export default function Main() {
         });
 
         if (!result.cancelled) {
-            await setPhoto({ url: result.uri, type: result.type });
+            setPhoto({ url: result.uri, type: result.type });
             // console.log(photo);    
-            handleSubmitImage();          
+            await handleSubmitInitialImage();      
         } else {
             alert("Processo cancelado!");
         }
     }
 
-    async function handleSubmitImage() {
+    async function handleSubmitInitialImage() {
         console.log("entrou com isso no state: ");
         console.log(photo);
 
@@ -80,46 +86,81 @@ export default function Main() {
             return alert("Sem nenhuma foto para a requisição!");
         }
 
-        toggleModal();
+        try {
+            const data = new FormData();
+            const imageName = `first-photo-${Date.now()}.png`;
+            console.log(`https://simple-search-api.herokuapp.com/images/${imageName}`);
 
-        // try {
-        //     const data = new FormData();
-
-        //     data.append('image', { 
-        //         uri: photo.url, 
-        //         name: 'first-photo.png', 
-        //         filename :'firstImageName.png', 
-        //         type: photo.type
-        //     });
-        //     data.append('Content-Type', photo.type);    
-        //     console.log("data:", data);
+            data.append('image', { 
+                uri: photo.url, 
+                name: imageName, 
+                filename : `file-${imageName}`, 
+                type: photo.type
+            });
+            // data.append('Content-Type', photo.type);    
+            // console.log("data:", data);
     
-        //     await api.post('/images/', data, { headers: { "Content-type": "multipart/form-data" }})
-        //         .then((data) => {
-        //             console.log("Passou and data from api: ", data.data);
+            await api.post('/initial-image', data, { headers: { "Content-type": "multipart/form-data" }})
+                .then((response) => {
+                    console.log("Passou and data from api: ", response);
+                    setAllProducts(response.data.allObjects);          
+                    
+                    toggleModal();                    
+                })
+                .catch(err => {
+                    console.log("Erro:", err);
+                });
             
-        //             if (data.status === 201) {
-        //                 alert("Imagem enviada com sucesso!");
-        //             } else {
-        //                 alert("Erro no envio da imagem.");
-        //             }
-        //         })
-        //         .catch(err => {
-        //             console.log("Erro:", err);
-        //         });
-            
-        // } catch(err) {
-        //     console.log("ERROOOOW:", err);
-        //     alert("Ocorreu um erro");
-        // }        
+        } catch(err) {
+            console.log("ERROOOOW:", err);
+            alert("Ocorreu um erro");
+        }        
     } 
 
-    function handleSelectProduct(id) {
-        if (productSelected === id) {
+    function handleSelectProduct(name) {
+        console.log("selecionou: ", name);
+        if (productSelected === name) {
             setProductSelected(null);
         } else {
-            setProductSelected(id);
+            setProductSelected(name);
         }
+    }
+
+    async function handleSubmitSelectedProduct() {
+        // console.log("entrou com isso no state: ");
+        // console.log(photo);
+
+        if (productSelected === null) {
+            return alert("Sem nenhum produto para a requisição!");
+        }
+
+        const data = {
+            choosenObject: productSelected,
+            allObjects: allProducts,
+        }
+
+        try {
+            await api.post('/object-image', data)
+            .then((response) => {
+                // if (response.status !== 201) {
+                //     alert("Erro no envio da imagem.");
+                //     return;
+                // }
+
+                console.log("Passou and data from api: ", response.data);                
+                setLinks(response.data.resultsSearch);
+                toggleModal();
+                setTimeout(() => setIsLinksModalVisible(true), 1500);
+            })
+            .catch(err => {
+                console.log("Erro:", err);
+            });            
+        } catch(err) {
+            console.log("ERROOOOW:", err);
+            alert("Ocorreu um erro");
+        }   
+        
+        // toggleModal();
     }
 
     function toggleModal() {
@@ -134,6 +175,67 @@ export default function Main() {
   return (
     <>
         <StatusBar barStyle="dark-content" />
+
+        <Modal
+            isVisible={isLinksModalVisible}
+            style={styles.modal}
+            onBackButtonPress={() => setIsLinksModalVisible(false)}
+            onBackdropPress={() => setIsLinksModalVisible(false)}
+        >
+            <View style={{ flex: 1 }}>
+                <View style={styles.boxTitleModal}>
+                    <BoldText style={[styles.titleModal, { fontSize: 17 }]}>
+                        Links para encontrar um(a) {productSelected}
+                    </BoldText>
+                </View>
+
+                <View style={styles.boxContentModal}>
+                    <ScrollView
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ 
+                            paddingVertical: 10, 
+                            paddingHorizontal: 20,
+                            alignItems: 'center',
+                        }}
+                    >
+                        {
+                            links !== "Sem resultado para a busca" ?
+                            links.map(link => (
+                                <TouchableOpacity
+                                    key={link[0]}
+                                    onPress={() => Communications.web(link[1])}
+                                    style={{
+                                        marginVertical: 15,
+                                    }}                         
+                                >
+                                    <RegularText
+                                        style={{
+                                            color: 'steelblue',
+                                            textDecorationLine: 'underline',
+                                            textAlign: 'center',                                           
+                                        }}
+                                    >
+                                        {link[1]}
+                                    </RegularText>
+                                </TouchableOpacity>
+                            ))
+                            :
+                            <BoldText>Sem resultado para a busca.</BoldText>
+                        }
+                        
+                    </ScrollView>
+                </View>
+
+                <View style={styles.boxFooterModal}>
+                    <TouchableOpacity 
+                        style={styles.btnCloseModal}
+                        onPress={() => setIsLinksModalVisible(false)}
+                    >
+                        <BoldText style={{ color: 'tomato' }}>X</BoldText>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </Modal>
 
         <Modal
             isVisible={isModalVisible}
@@ -152,53 +254,24 @@ export default function Main() {
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={{ paddingHorizontal: 10 }}
                     >
-                        <TouchableOpacity 
-                            onPress={() => handleSelectProduct(1)}
-                            style={{ 
-                                borderWidth: productSelected === 1 ? 5 : 0,
-                                borderColor: productSelected === 1 ? Colors.pcTransp : 'transparent',
-                                marginHorizontal: 10,
-                                borderRadius: 15, 
-                            }}
-                        >
-                            <Image source={{ uri: photo.url }} style={styles.imageModal} />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity 
-                            onPress={() => handleSelectProduct(2)}
-                            style={{ 
-                                borderWidth: productSelected === 2 ? 5 : 0,
-                                borderColor: productSelected === 2 ? Colors.pcTransp : 'transparent',
-                                marginHorizontal: 10,
-                                borderRadius: 15, 
-                            }}
-                        >
-                            <Image source={{ uri: photo.url }} style={styles.imageModal} />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity 
-                            onPress={() => handleSelectProduct(3)}
-                            style={{ 
-                                borderWidth: productSelected === 3 ? 5 : 0,
-                                borderColor: productSelected === 3 ? Colors.pcTransp : 'transparent',
-                                marginHorizontal: 10,
-                                borderRadius: 15, 
-                            }}
-                        >
-                            <Image source={{ uri: photo.url }} style={styles.imageModal} />
-                        </TouchableOpacity>
-
-                        <TouchableOpacity 
-                            onPress={() => handleSelectProduct(4)}
-                            style={{ 
-                                borderWidth: productSelected === 4 ? 5 : 0,
-                                borderColor: productSelected === 4 ? Colors.pcTransp : 'transparent',
-                                marginHorizontal: 10,
-                                borderRadius: 15, 
-                            }}
-                        >
-                            <Image source={{ uri: photo.url }} style={styles.imageModal} />
-                        </TouchableOpacity>
+                        {
+                            allProducts &&
+                            allProducts.map(product => (
+                                <TouchableOpacity
+                                    key={product[0] + Math.random()}
+                                    onPress={() => handleSelectProduct(product[0])}
+                                    style={{ 
+                                        borderWidth: productSelected === product[0] ? 5 : 0,
+                                        borderColor: productSelected === product[0] ? Colors.pcTransp : 'transparent',
+                                        marginHorizontal: 10,
+                                        borderRadius: 15, 
+                                    }}
+                                >
+                                    <Image source={{ uri: `data:image/png;base64,${product[1]}` }} style={[styles.imageModal, { resizeMode: 'contain' }]} />
+                                </TouchableOpacity>
+                            ))
+                        }
+                        
                     </ScrollView>
                 </View>
 
@@ -206,7 +279,7 @@ export default function Main() {
                     <TouchableOpacity 
                         disabled={productSelected ? false : true} 
                         style={[styles.btnSearch, { opacity: productSelected ? 1 : 0.3 }]}
-                        onPress={toggleModal}
+                        onPress={handleSubmitSelectedProduct}
                     >
                         <BoldText style={{ opacity: productSelected ? 1 : 0.3 }}>Pesquisar</BoldText>
                     </TouchableOpacity>
