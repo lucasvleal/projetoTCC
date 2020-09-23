@@ -10,12 +10,26 @@ const styles = StyleSheet.create({
     },
 
     boxTitleModal: {
-        flex: 0.2,
+        flex: 0.3,
         justifyContent: 'center',
         alignItems: 'center',
 
         // backgroundColor: 'blue',
     },
+
+        boxQntLinksModal: {
+            flexDirection: 'row',
+            alignItems: 'center',
+        },
+
+            btnSetQntLinks: {
+                height: 30,
+                flex: 1,
+                marginVertical: 10,
+
+                justifyContent: 'center',
+                alignItems: 'center',
+            },
 
         titleModal: {
             fontSize: 22,
@@ -24,7 +38,7 @@ const styles = StyleSheet.create({
         },
 
     boxContentModal: {
-        flex: 0.6,
+        flex: 0.5,
         // justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row',
