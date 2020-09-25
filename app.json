@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "tcc",
-    "slug": "projetotcc",
+    "name": "SimpleSearch",
+    "slug": "simplesearch",
     "privacy": "public",
     "sdkVersion": "36.0.0",
     "platforms": [
@@ -25,6 +25,7 @@
     ],
     "ios": {
       "supportsTablet": true
-    }
+    },
+    "description": "Um aplicativo que te ajuda a buscar produtos e onde os encontrar na internet, através de fotos. Desenvolvido para o TCC (Trabalho de Conclusão de Curso) do curso de Bacharelado em Ciência da Computação pela FCT Unesp."
   }
 }

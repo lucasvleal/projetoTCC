@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, AppRegistry } from 'react-native';
 import { AppLoading } from 'expo';
 import * as Font from 'expo-font';
 
@@ -41,3 +41,5 @@ export default function App() {
     )
   } 
 }
+
+AppRegistry.registerComponent('main', App);

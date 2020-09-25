@@ -2,7 +2,7 @@ import { StyleSheet, Platform } from 'react-native';
 
 import Colors from './Colors';
 
-let sbHeight = Platform.OS === 'ios' ? 20 : Constants.statusBarHeight;
+let sbHeight = Platform.OS === 'ios' ? 20 : 32;
 
 const styles = StyleSheet.create({
     container: {
