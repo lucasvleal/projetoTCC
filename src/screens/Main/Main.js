@@ -105,8 +105,8 @@ export default function Main() {
     }
 
     async function handleSubmitInitialImage() {
-        console.log("entrou com isso no state: ");
-        console.log(photo);
+        // console.log("entrou com isso no state: ");
+        // console.log(photo);
 
         if (photo === null) {
             return alert("Sem nenhuma foto para a requisição!");
@@ -120,7 +120,8 @@ export default function Main() {
             data.append('image', { 
                 uri: photo, 
                 name: imageName, 
-                filename : `file-${imageName}`, 
+                filename : `file-${imageName}`,
+                type: 'image/jpg', 
             });
     
             await api.post('/initial-image', data, { headers: { "Content-type": "multipart/form-data" }})
@@ -128,7 +129,7 @@ export default function Main() {
                     // console.log("Passou and data from api: ", response.data);
                     setAllProducts(response.data.allObjects);    
                     
-                    setIsLoading(false);
+                    setTimeout(() => setIsLoading(false), 100);
                     toggleModal();
                 })
                 .catch(err => {
@@ -170,6 +171,8 @@ export default function Main() {
             .then((response) => {
                 // console.log("Passou and data from api: ", response.data);                
                 setLinks(response.data.resultsSearch);
+                console.log("query: ", response.data.queryToSearch);
+
                 toggleModal();
                 setTimeout(() => setIsLinksModalVisible(true), 1500);
                 setIsObjectSearchLoading(false);
@@ -211,49 +214,44 @@ export default function Main() {
                     </BoldText>
                 </View>
 
-                {
-                    isObjectSearchLoading ?
-                        <ActivityIndicator size="large" color={Colors.pcTransp} />
-                    :
-                        <>
-                        <View style={styles.boxContentModal}>
-                            <ScrollView
-                                showsVerticalScrollIndicator={false}
-                                contentContainerStyle={{ 
-                                    paddingVertical: 10, 
-                                    paddingHorizontal: 20,
-                                    alignItems: 'center',
-                                }}
+                
+                <View style={styles.boxContentModal}>
+                    <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ 
+                        paddingVertical: 10, 
+                        paddingHorizontal: 20,
+                        alignItems: 'center',
+                    }}
+                    >
+                    {
+                        links !== "Sem resultado para a busca" ?
+                        links.map(link => (
+                            <TouchableOpacity
+                            key={link[0]}
+                            onPress={() => Communications.web(link[1])}
+                            style={{
+                                marginVertical: 15,
+                            }}                         
                             >
-                                {
-                                    links !== "Sem resultado para a busca" ?
-                                    links.map(link => (
-                                        <TouchableOpacity
-                                            key={link[0]}
-                                            onPress={() => Communications.web(link[1])}
-                                            style={{
-                                                marginVertical: 15,
-                                            }}                         
-                                        >
-                                            <RegularText
-                                                style={{
-                                                    color: 'steelblue',
-                                                    textDecorationLine: 'underline',
-                                                    textAlign: 'center',                                           
-                                                }}
-                                            >
-                                                {link[1]}
-                                            </RegularText>
-                                        </TouchableOpacity>
-                                    ))
-                                    :
-                                    <BoldText>Sem resultado para a busca.</BoldText>
-                                }
-                                
-                            </ScrollView>
-                        </View>
-                        </>
-                }
+                            <RegularText
+                            style={{
+                                color: 'steelblue',
+                                textDecorationLine: 'underline',
+                                textAlign: 'center',                                           
+                            }}
+                            >
+                            {link[1]}
+                            </RegularText>
+                            </TouchableOpacity>
+                            ))
+                            :
+                            <BoldText>Sem resultado para a busca.</BoldText>
+                        }
+                    
+                    </ScrollView>
+                </View>
+                
                 
                 <View style={styles.boxFooterModal}>
                     <TouchableOpacity 
@@ -346,7 +344,13 @@ export default function Main() {
                         style={[styles.btnSearch, { opacity: productSelected ? 1 : 0.3 }]}
                         onPress={handleSubmitSelectedProduct}
                     >
-                        <BoldText style={{ opacity: productSelected ? 1 : 0.3 }}>P E S Q U I S A R</BoldText>
+                        {
+                            isObjectSearchLoading ?
+                                <ActivityIndicator size="small" color={Colors.pcTransp} />
+                            :
+                                <BoldText style={{ opacity: productSelected ? 1 : 0.3 }}>P E S Q U I S A R</BoldText>
+                        }
+                        
                     </TouchableOpacity>
 
                     <TouchableOpacity 
